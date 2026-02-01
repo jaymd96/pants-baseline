@@ -40,7 +40,7 @@ baseline_python_project(
     name="my_project",
     sources=["src/**/*.py"],
     test_sources=["tests/**/*.py"],
-    python_version="3.11",
+    python_version="3.13",
     line_length=120,
     strict=True,
     coverage_threshold=80,
@@ -76,7 +76,7 @@ pants baseline-audit ::
 enabled = true
 
 # Target Python version
-python_version = "3.11"
+python_version = "3.13"
 
 # Maximum line length
 line_length = 120
@@ -180,7 +180,7 @@ The `baseline_python_project` target supports the following fields:
 |-------|------|---------|-------------|
 | `sources` | `list[str]` | `["**/*.py"]` | Python source file patterns |
 | `test_sources` | `list[str]` | `["tests/**/*.py"]` | Test file patterns |
-| `python_version` | `str` | `"3.11"` | Target Python version |
+| `python_version` | `str` | `"3.13"` | Target Python version |
 | `line_length` | `int` | `120` | Maximum line length |
 | `strict` | `bool` | `True` | Enable strict mode |
 | `coverage_threshold` | `int` | `80` | Minimum coverage % |
@@ -274,7 +274,7 @@ baseline_python_project(
 
 ```toml
 [GLOBAL]
-pants_version = "2.20.0"
+pants_version = "2.30.1"
 backend_packages = [
     "pants.backend.python",
     "pants_baseline",
@@ -282,10 +282,10 @@ backend_packages = [
 plugins = ["jaymd96-pants-baseline==0.1.0"]
 
 [python]
-interpreter_constraints = ["CPython>=3.11,<4"]
+interpreter_constraints = ["CPython>=3.13,<4"]
 
 [python-baseline]
-python_version = "3.11"
+python_version = "3.13"
 line_length = 120
 coverage_threshold = 80
 

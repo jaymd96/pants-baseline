@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "jaymd96-pants-baseline"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Opinionated Python code quality baseline plugin for Pants build system"
 readme = "README.md"
 license = {text = "Apache-2.0"}
