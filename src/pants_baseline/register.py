@@ -34,10 +34,6 @@ def rules() -> Iterable[Rule]:
         *collect_rules(typecheck_goal),
         *collect_rules(test_goal),
         *collect_rules(audit_goal),
-        *BaselineSubsystem.rules(),
-        *RuffSubsystem.rules(),
-        *TySubsystem.rules(),
-        *UvSubsystem.rules(),
     ]
 
 

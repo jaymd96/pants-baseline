@@ -1,7 +1,5 @@
 """Audit goal for uv security scanning."""
 
-from __future__ import annotations
-
 from typing import Iterable
 
 from pants.engine.console import Console
@@ -49,12 +47,12 @@ async def run_baseline_audit(
         console.print_stdout(f"  Ignoring: {', '.join(uv_subsystem.audit_ignore_vulns)}")
     console.print_stdout("")
 
-    audit_request = UvAuditRequest(
+    audit_request: UvAuditRequest = UvAuditRequest(
         lock_file=uv_subsystem.lock_file,
         ignore_vulns=tuple(uv_subsystem.audit_ignore_vulns),
         output_format=uv_subsystem.output_format,
     )
-    result = await Get(AuditResult, {UvAuditRequest: audit_request})
+    result = await Get(AuditResult, UvAuditRequest, audit_request)
 
     if result.stdout:
         console.print_stdout(result.stdout)

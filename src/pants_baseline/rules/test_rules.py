@@ -1,7 +1,5 @@
 """Rules for pytest testing with coverage."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -73,18 +71,18 @@ async def run_pytest(
         )
 
     # Get test source files
-    test_source_files_request = SourceFilesRequest(
+    test_source_files_request: SourceFilesRequest = SourceFilesRequest(
         sources_fields=[fs.test_sources for fs in field_sets],
         for_sources_types=(BaselineTestSourcesField,),
     )
-    test_sources = await Get(SourceFiles, {SourceFilesRequest: test_source_files_request})
+    test_sources = await Get(SourceFiles, SourceFilesRequest, test_source_files_request)
 
     # Get source files for coverage
-    source_files_request = SourceFilesRequest(
+    source_files_request: SourceFilesRequest = SourceFilesRequest(
         sources_fields=[fs.sources for fs in field_sets],
         for_sources_types=(BaselineSourcesField,),
     )
-    sources = await Get(SourceFiles, {SourceFilesRequest: source_files_request})
+    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
 
     if not test_sources.files:
         return TestResult(
@@ -121,14 +119,14 @@ async def run_pytest(
         *test_sources.files,
     ]
 
-    process = Process(
+    process: Process = Process(
         argv=argv,
         input_digest=test_sources.snapshot.digest,
         description=f"Run pytest on {len(test_sources.files)} test files",
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, {Process: process})
+    result = await Get(FallibleProcessResult, Process, process)
 
     return TestResult(
         exit_code=result.exit_code,

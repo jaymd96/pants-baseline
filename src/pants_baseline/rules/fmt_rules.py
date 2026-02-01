@@ -1,7 +1,5 @@
 """Rules for Ruff formatting."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -65,11 +63,11 @@ async def run_ruff_fmt(
         )
 
     # Get source files
-    source_files_request = SourceFilesRequest(
+    source_files_request: SourceFilesRequest = SourceFilesRequest(
         sources_fields=[fs.sources for fs in field_sets],
         for_sources_types=(BaselineSourcesField,),
     )
-    sources = await Get(SourceFiles, {SourceFilesRequest: source_files_request})
+    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
 
     if not sources.files:
         return FmtResult(
@@ -91,7 +89,7 @@ async def run_ruff_fmt(
         *sources.files,
     ]
 
-    process = Process(
+    process: Process = Process(
         argv=argv,
         input_digest=sources.snapshot.digest,
         output_files=sources.files,
@@ -99,9 +97,10 @@ async def run_ruff_fmt(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, {Process: process})
+    result = await Get(FallibleProcessResult, Process, process)
 
-    output_snapshot = await Get(Snapshot, {Digest: result.output_digest})
+    output_digest: Digest = result.output_digest
+    output_snapshot = await Get(Snapshot, Digest, output_digest)
 
     return FmtResult(
         input=sources.snapshot,

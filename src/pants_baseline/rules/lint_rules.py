@@ -1,7 +1,5 @@
 """Rules for Ruff linting."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -77,11 +75,11 @@ async def run_ruff_lint(
         )
 
     # Get source files
-    source_files_request = SourceFilesRequest(
+    source_files_request: SourceFilesRequest = SourceFilesRequest(
         sources_fields=[fs.sources for fs in field_sets],
         for_sources_types=(BaselineSourcesField,),
     )
-    sources = await Get(SourceFiles, {SourceFilesRequest: source_files_request})
+    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
 
     if not sources.files:
         return LintResult(
@@ -107,14 +105,14 @@ async def run_ruff_lint(
         *sources.files,
     ]
 
-    process = Process(
+    process: Process = Process(
         argv=argv,
         input_digest=sources.snapshot.digest,
         description=f"Run Ruff lint on {len(sources.files)} files",
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, {Process: process})
+    result = await Get(FallibleProcessResult, Process, process)
 
     return LintResult(
         exit_code=result.exit_code,

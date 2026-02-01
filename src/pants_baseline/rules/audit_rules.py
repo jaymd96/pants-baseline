@@ -1,7 +1,5 @@
 """Rules for uv security auditing."""
 
-from __future__ import annotations
-
 from dataclasses import dataclass
 from typing import Iterable
 
@@ -46,13 +44,13 @@ async def run_uv_audit(
         *ignore_args,
     ]
 
-    process = Process(
+    process: Process = Process(
         argv=argv,
         description="Run uv security audit",
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, {Process: process})
+    result = await Get(FallibleProcessResult, Process, process)
 
     stdout = result.stdout.decode()
     stderr = result.stderr.decode()
