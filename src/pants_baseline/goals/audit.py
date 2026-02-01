@@ -49,14 +49,12 @@ async def run_baseline_audit(
         console.print_stdout(f"  Ignoring: {', '.join(uv_subsystem.audit_ignore_vulns)}")
     console.print_stdout("")
 
-    result = await Get(
-        AuditResult,
-        UvAuditRequest(
-            lock_file=uv_subsystem.lock_file,
-            ignore_vulns=tuple(uv_subsystem.audit_ignore_vulns),
-            output_format=uv_subsystem.output_format,
-        ),
+    audit_request = UvAuditRequest(
+        lock_file=uv_subsystem.lock_file,
+        ignore_vulns=tuple(uv_subsystem.audit_ignore_vulns),
+        output_format=uv_subsystem.output_format,
     )
+    result = await Get(AuditResult, {UvAuditRequest: audit_request})
 
     if result.stdout:
         console.print_stdout(result.stdout)

@@ -52,7 +52,7 @@ async def run_uv_audit(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await Get(FallibleProcessResult, {Process: process})
 
     stdout = result.stdout.decode()
     stderr = result.stderr.decode()

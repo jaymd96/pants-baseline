@@ -73,22 +73,18 @@ async def run_pytest(
         )
 
     # Get test source files
-    test_sources = await Get(
-        SourceFiles,
-        SourceFilesRequest(
-            sources_fields=[fs.test_sources for fs in field_sets],
-            for_sources_types=(BaselineTestSourcesField,),
-        ),
+    test_source_files_request = SourceFilesRequest(
+        sources_fields=[fs.test_sources for fs in field_sets],
+        for_sources_types=(BaselineTestSourcesField,),
     )
+    test_sources = await Get(SourceFiles, {SourceFilesRequest: test_source_files_request})
 
     # Get source files for coverage
-    sources = await Get(
-        SourceFiles,
-        SourceFilesRequest(
-            sources_fields=[fs.sources for fs in field_sets],
-            for_sources_types=(BaselineSourcesField,),
-        ),
+    source_files_request = SourceFilesRequest(
+        sources_fields=[fs.sources for fs in field_sets],
+        for_sources_types=(BaselineSourcesField,),
     )
+    sources = await Get(SourceFiles, {SourceFilesRequest: source_files_request})
 
     if not test_sources.files:
         return TestResult(
@@ -132,7 +128,7 @@ async def run_pytest(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await Get(FallibleProcessResult, {Process: process})
 
     return TestResult(
         exit_code=result.exit_code,

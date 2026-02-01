@@ -20,8 +20,8 @@ class TySubsystem(Subsystem):
     - Rust implementation with obsessive performance focus
     """
 
-    options_scope = "ty"
-    help = "ty type checker configuration (Astral's next-gen type checker)."
+    options_scope = "baseline-ty"
+    help = "ty type checker configuration for baseline plugin (Astral's next-gen type checker)."
 
     version = StrOption(
         default="0.1.0",

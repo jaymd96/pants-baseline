@@ -13,8 +13,8 @@ class RuffSubsystem(Subsystem):
     It replaces Black, isort, Flake8, and many other tools in a single binary.
     """
 
-    options_scope = "ruff"
-    help = "Ruff linting and formatting configuration."
+    options_scope = "baseline-ruff"
+    help = "Ruff linting and formatting configuration for baseline plugin."
 
     version = StrOption(
         default="0.2.0",

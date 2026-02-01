@@ -18,8 +18,8 @@ class UvSubsystem(Subsystem):
     - Virtual environment management
     """
 
-    options_scope = "uv"
-    help = "uv dependency management and security auditing configuration."
+    options_scope = "baseline-uv"
+    help = "uv dependency management and security auditing configuration for baseline plugin."
 
     version = StrOption(
         default="0.5.0",

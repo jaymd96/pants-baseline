@@ -82,13 +82,11 @@ async def run_ty_check(
         )
 
     # Get source files
-    sources = await Get(
-        SourceFiles,
-        SourceFilesRequest(
-            sources_fields=[fs.sources for fs in field_sets],
-            for_sources_types=(BaselineSourcesField,),
-        ),
+    source_files_request = SourceFilesRequest(
+        sources_fields=[fs.sources for fs in field_sets],
+        for_sources_types=(BaselineSourcesField,),
     )
+    sources = await Get(SourceFiles, {SourceFilesRequest: source_files_request})
 
     if not sources.files:
         return CheckResults(
@@ -123,7 +121,7 @@ async def run_ty_check(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await Get(FallibleProcessResult, {Process: process})
 
     return CheckResults(
         results=[
