@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth status:*)",
+      "Bash(gh repo create:*)",
+      "Bash(gh repo edit:*)",
+      "Bash(gh label create:*)",
+      "Bash(gh repo view:*)",
+      "Bash(hatch build:*)",
+      "Bash(hatch publish)",
+      "Bash(source ~/.zshrc)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
