@@ -23,6 +23,7 @@ class BaselineAudit(Goal):
     """Goal to run uv security audit."""
 
     subsystem_cls = BaselineAuditSubsystem
+    environment_behavior = Goal.EnvironmentBehavior.LOCAL_ONLY
 
 
 @goal_rule

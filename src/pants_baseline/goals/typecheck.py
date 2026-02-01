@@ -24,6 +24,7 @@ class BaselineTypecheck(Goal):
     """Goal to run ty type checking."""
 
     subsystem_cls = BaselineTypecheckSubsystem
+    environment_behavior = Goal.EnvironmentBehavior.LOCAL_ONLY
 
 
 @goal_rule

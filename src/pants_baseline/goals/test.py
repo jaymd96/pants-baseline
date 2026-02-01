@@ -23,6 +23,7 @@ class BaselineTest(Goal):
     """Goal to run pytest tests."""
 
     subsystem_cls = BaselineTestSubsystem
+    environment_behavior = Goal.EnvironmentBehavior.LOCAL_ONLY
 
 
 @goal_rule

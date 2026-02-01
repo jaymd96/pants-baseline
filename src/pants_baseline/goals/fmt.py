@@ -24,6 +24,7 @@ class BaselineFmt(Goal):
     """Goal to run Ruff formatting."""
 
     subsystem_cls = BaselineFmtSubsystem
+    environment_behavior = Goal.EnvironmentBehavior.LOCAL_ONLY
 
 
 @goal_rule

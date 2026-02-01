@@ -28,6 +28,7 @@ class BaselineLint(Goal):
     """Goal to run Ruff linting."""
 
     subsystem_cls = BaselineLintSubsystem
+    environment_behavior = Goal.EnvironmentBehavior.LOCAL_ONLY
 
 
 @goal_rule
