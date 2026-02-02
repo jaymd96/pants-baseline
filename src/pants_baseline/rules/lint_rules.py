@@ -3,9 +3,9 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pants.core.goals.lint import LintResult, LintTargetsRequest, PartitionerType
+from pants.core.goals.lint import LintResult, LintTargetsRequest
 from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
-from pants.core.util_rules.partitions import Partitions
+from pants.core.util_rules.partitions import Partitions, PartitionerType
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
 from pants.engine.fs import Digest, MergeDigests
 from pants.engine.platform import Platform

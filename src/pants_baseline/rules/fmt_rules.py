@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pants.core.goals.fmt import FmtResult, FmtTargetsRequest, PartitionerType
+from pants.core.goals.fmt import FmtResult, FmtTargetsRequest
+from pants.core.util_rules.partitions import PartitionerType
 from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
 from pants.engine.fs import Digest, MergeDigests, Snapshot

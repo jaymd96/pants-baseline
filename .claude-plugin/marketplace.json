@@ -10,7 +10,7 @@
       "name": "pants-baseline",
       "source": "./plugins/pants-baseline",
       "description": "Claude Code skills for pants-baseline Python quality checks - lint, format, typecheck, test, audit with intelligent error handling",
-      "version": "0.2.1",
+      "version": "0.2.2",
       "keywords": ["pants", "python", "quality", "ruff", "pytest", "baseline", "linting", "formatting"]
     }
   ]
