@@ -1,0 +1,14 @@
+{
+  "name": "pants-baseline",
+  "version": "0.2.0",
+  "description": "Claude Code skills for pants-baseline Python quality checks",
+  "homepage": "https://github.com/jaymd96/pants-baseline",
+  "skills": [
+    "skills/baseline-lint.md",
+    "skills/baseline-fmt.md",
+    "skills/baseline-typecheck.md",
+    "skills/baseline-test.md",
+    "skills/baseline-check.md",
+    "skills/baseline-audit.md"
+  ]
+}
