@@ -13,7 +13,7 @@ class BaselineSubsystem(Subsystem):
     including Ruff, ty, pytest, and uv audit.
     """
 
-    options_scope = "python-baseline"
+    options_scope = "baseline-python"
     help = "Opinionated Python code quality baseline configuration."
 
     # Global settings

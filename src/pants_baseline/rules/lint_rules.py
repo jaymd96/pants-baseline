@@ -10,7 +10,7 @@ from pants.engine.fs import Digest, MergeDigests
 from pants.engine.platform import Platform
 from pants.engine.process import FallibleProcessResult, Process
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
-from pants.engine.target import FieldSet, Target
+from pants.engine.target import FieldSet
 from pants.engine.unions import UnionRule
 from pants.util.logging import LogLevel
 
@@ -34,15 +34,6 @@ class RuffLintRequest(LintTargetsRequest):
 
     field_set_type = RuffLintFieldSet
     tool_name = "ruff"
-
-
-@dataclass(frozen=True)
-class RuffLintResult:
-    """Result of running Ruff lint."""
-
-    exit_code: int
-    stdout: str
-    stderr: str
 
 
 @rule(desc="Lint with Ruff", level=LogLevel.DEBUG)
@@ -74,12 +65,17 @@ async def run_ruff_lint(
             partition_description=None,
         )
 
-    # Get source files
-    source_files_request: SourceFilesRequest = SourceFilesRequest(
-        sources_fields=[fs.sources for fs in field_sets],
-        for_sources_types=(BaselineSourcesField,),
+    # Download ruff and get source files in parallel
+    downloaded_ruff, sources = await MultiGet(
+        Get(DownloadedExternalTool, ExternalToolRequest, ruff_subsystem.get_request(platform)),
+        Get(
+            SourceFiles,
+            SourceFilesRequest(
+                sources_fields=[fs.sources for fs in field_sets],
+                for_sources_types=(BaselineSourcesField,),
+            ),
+        ),
     )
-    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
 
     if not sources.files:
         return LintResult(
@@ -90,14 +86,20 @@ async def run_ruff_lint(
             partition_description=None,
         )
 
+    # Merge the ruff binary with the source files
+    input_digest = await Get(
+        Digest,
+        MergeDigests([downloaded_ruff.digest, sources.snapshot.digest]),
+    )
+
     # Build Ruff command
     select_args = [f"--select={','.join(ruff_subsystem.select)}"] if ruff_subsystem.select else []
     ignore_args = [f"--ignore={','.join(ruff_subsystem.ignore)}"] if ruff_subsystem.ignore else []
 
     argv = [
-        "ruff",
+        downloaded_ruff.exe,
         "check",
-        f"--target-version={baseline_subsystem.get_python_target_version()}",
+        f"--target-version=py{baseline_subsystem.python_version.replace('.', '')}",
         f"--line-length={baseline_subsystem.line_length}",
         *select_args,
         *ignore_args,
@@ -105,9 +107,9 @@ async def run_ruff_lint(
         *sources.files,
     ]
 
-    process: Process = Process(
+    process = Process(
         argv=argv,
-        input_digest=sources.snapshot.digest,
+        input_digest=input_digest,
         description=f"Run Ruff lint on {len(sources.files)} files",
         level=LogLevel.DEBUG,
     )

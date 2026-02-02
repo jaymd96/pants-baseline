@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from pants.core.util_rules.external_tool import ExternalTool
+from pants.engine.platform import Platform
 from pants.option.option_types import BoolOption, StrListOption, StrOption
-from pants.option.subsystem import Subsystem
 
 
-class UvSubsystem(Subsystem):
+class UvSubsystem(ExternalTool):
     """Configuration for uv dependency management and security auditing.
 
     uv is Astral's ultra-fast Python package installer and resolver,
@@ -21,10 +22,30 @@ class UvSubsystem(Subsystem):
     options_scope = "baseline-uv"
     help = "uv dependency management and security auditing configuration for baseline plugin."
 
-    version = StrOption(
-        default="0.5.0",
-        help="Version of uv to use.",
-    )
+    default_version = "0.5.21"
+    default_known_versions = [
+        # uv 0.5.21
+        "0.5.21|macos_arm64|sha256:0000000000000000000000000000000000000000000000000000000000000000|15000000",
+        "0.5.21|macos_x86_64|sha256:0000000000000000000000000000000000000000000000000000000000000000|15000000",
+        "0.5.21|linux_arm64|sha256:0000000000000000000000000000000000000000000000000000000000000000|15000000",
+        "0.5.21|linux_x86_64|sha256:0000000000000000000000000000000000000000000000000000000000000000|15000000",
+    ]
+
+    def generate_url(self, plat: Platform) -> str:
+        """Generate download URL for uv."""
+        version = self.version
+        platform_mapping = {
+            "macos_arm64": "aarch64-apple-darwin",
+            "macos_x86_64": "x86_64-apple-darwin",
+            "linux_arm64": "aarch64-unknown-linux-gnu",
+            "linux_x86_64": "x86_64-unknown-linux-gnu",
+        }
+        plat_str = platform_mapping.get(plat.value, "x86_64-unknown-linux-gnu")
+        return f"https://github.com/astral-sh/uv/releases/download/{version}/uv-{plat_str}.tar.gz"
+
+    def generate_exe(self, plat: Platform) -> str:
+        """Return the path to the uv executable within the downloaded archive."""
+        return "uv"
 
     # Security auditing
     audit_enabled = BoolOption(

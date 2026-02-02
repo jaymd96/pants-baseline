@@ -4,17 +4,16 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from pants.core.goals.lint import LintFilesRequest, LintResult
+from pants.core.goals.lint import LintResult
 from pants.engine.console import Console
-from pants.engine.fs import PathGlobs, Paths
 from pants.engine.goal import Goal, GoalSubsystem
 from pants.engine.rules import Get, collect_rules, goal_rule
-from pants.engine.target import Targets
-from pants.util.logging import LogLevel
+from pants.engine.target import FieldSet, FilteredTargets
 
-from pants_baseline.rules.lint_rules import RuffLintRequest
+from pants_baseline.rules.lint_rules import RuffLintFieldSet, RuffLintRequest
 from pants_baseline.subsystems.baseline import BaselineSubsystem
 from pants_baseline.subsystems.ruff import RuffSubsystem
+from pants_baseline.targets import BaselineSourcesField
 
 
 class BaselineLintSubsystem(GoalSubsystem):
@@ -34,7 +33,7 @@ class BaselineLint(Goal):
 @goal_rule
 async def run_baseline_lint(
     console: Console,
-    targets: Targets,
+    targets: FilteredTargets,
     baseline_subsystem: BaselineSubsystem,
     ruff_subsystem: RuffSubsystem,
 ) -> BaselineLint:
@@ -43,16 +42,38 @@ async def run_baseline_lint(
         console.print_stdout("Python baseline is disabled.")
         return BaselineLint(exit_code=0)
 
-    console.print_stdout("Running Ruff linter...")
-    console.print_stdout(f"  Target Python version: {baseline_subsystem.python_version}")
-    console.print_stdout(f"  Line length: {baseline_subsystem.line_length}")
-    console.print_stdout(f"  Rules: {', '.join(ruff_subsystem.select[:5])}...")
-    console.print_stdout("")
+    # Filter targets that have BaselineSourcesField
+    applicable_targets = [
+        t for t in targets
+        if t.has_field(BaselineSourcesField)
+    ]
 
-    # The actual linting is handled by the LintTargetsRequest mechanism
-    # This goal just provides a user-friendly entry point
+    if not applicable_targets:
+        console.print_stdout("No baseline_python_project targets found.")
+        return BaselineLint(exit_code=0)
 
-    return BaselineLint(exit_code=0)
+    # Create field sets for each target
+    field_sets = [
+        RuffLintFieldSet.create(t)
+        for t in applicable_targets
+    ]
+
+    # Create the lint request and run it
+    request = RuffLintRequest(field_sets)
+    result = await Get(LintResult, RuffLintRequest, request)
+
+    # Print results
+    if result.stdout:
+        console.print_stdout(result.stdout)
+    if result.stderr:
+        console.print_stderr(result.stderr)
+
+    if result.exit_code == 0:
+        console.print_stdout(f"✓ Linted {len(field_sets)} target(s) successfully")
+    else:
+        console.print_stderr(f"✗ Linting failed with exit code {result.exit_code}")
+
+    return BaselineLint(exit_code=result.exit_code)
 
 
 def rules() -> Iterable:

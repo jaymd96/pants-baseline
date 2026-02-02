@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from pants.core.goals.fmt import FmtResult
 from pants.engine.console import Console
 from pants.engine.goal import Goal, GoalSubsystem
-from pants.engine.rules import collect_rules, goal_rule
-from pants.engine.target import Targets
+from pants.engine.rules import Get, collect_rules, goal_rule
+from pants.engine.target import FilteredTargets
 
+from pants_baseline.rules.fmt_rules import RuffFmtFieldSet, RuffFmtRequest
 from pants_baseline.subsystems.baseline import BaselineSubsystem
 from pants_baseline.subsystems.ruff import RuffSubsystem
+from pants_baseline.targets import BaselineSourcesField
 
 
 class BaselineFmtSubsystem(GoalSubsystem):
@@ -30,7 +33,7 @@ class BaselineFmt(Goal):
 @goal_rule
 async def run_baseline_fmt(
     console: Console,
-    targets: Targets,
+    targets: FilteredTargets,
     baseline_subsystem: BaselineSubsystem,
     ruff_subsystem: RuffSubsystem,
 ) -> BaselineFmt:
@@ -39,15 +42,37 @@ async def run_baseline_fmt(
         console.print_stdout("Python baseline is disabled.")
         return BaselineFmt(exit_code=0)
 
-    console.print_stdout("Running Ruff formatter...")
-    console.print_stdout(f"  Target Python version: {baseline_subsystem.python_version}")
-    console.print_stdout(f"  Line length: {baseline_subsystem.line_length}")
-    console.print_stdout(f"  Quote style: {ruff_subsystem.quote_style}")
-    console.print_stdout(f"  Indent style: {ruff_subsystem.indent_style}")
-    console.print_stdout("")
+    # Filter targets that have BaselineSourcesField
+    applicable_targets = [
+        t for t in targets
+        if t.has_field(BaselineSourcesField)
+    ]
 
-    # The actual formatting is handled by the FmtTargetsRequest mechanism
-    # This goal just provides a user-friendly entry point
+    if not applicable_targets:
+        console.print_stdout("No baseline_python_project targets found.")
+        return BaselineFmt(exit_code=0)
+
+    # Create field sets for each target
+    field_sets = [
+        RuffFmtFieldSet.create(t)
+        for t in applicable_targets
+    ]
+
+    # Create the fmt request and run it
+    request = RuffFmtRequest(field_sets)
+    result = await Get(FmtResult, RuffFmtRequest, request)
+
+    # Print results
+    if result.stdout:
+        console.print_stdout(result.stdout)
+    if result.stderr:
+        console.print_stderr(result.stderr)
+
+    files_changed = result.input != result.output
+    if files_changed:
+        console.print_stdout(f"✓ Formatted {len(field_sets)} target(s)")
+    else:
+        console.print_stdout(f"✓ {len(field_sets)} target(s) already formatted")
 
     return BaselineFmt(exit_code=0)
 

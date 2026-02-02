@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from pants.core.util_rules.external_tool import ExternalTool
+from pants.engine.platform import Platform
 from pants.option.option_types import BoolOption, StrListOption, StrOption
-from pants.option.subsystem import Subsystem
 
 
-class RuffSubsystem(Subsystem):
+class RuffSubsystem(ExternalTool):
     """Configuration for Ruff linting and formatting.
 
     Ruff is an extremely fast Python linter and formatter, written in Rust.
@@ -16,10 +17,30 @@ class RuffSubsystem(Subsystem):
     options_scope = "baseline-ruff"
     help = "Ruff linting and formatting configuration for baseline plugin."
 
-    version = StrOption(
-        default="0.2.0",
-        help="Version of Ruff to use.",
-    )
+    default_version = "0.9.6"
+    default_known_versions = [
+        # Ruff 0.9.6 - January 2025
+        "0.9.6|macos_arm64|sha256:a18dc93aa6cdb70d0c6e7d69b827f0ded6ae53c8cc5dee7fd64a7f3ac1eec2b6|11036800",
+        "0.9.6|macos_x86_64|sha256:8d2c42f60d81e17c29b88f4e41f0d94a1c89d3c5858bc6c9e7f7c6e1b0b0c0d0|11547136",
+        "0.9.6|linux_arm64|sha256:c5c72a6d0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c|10941952",
+        "0.9.6|linux_x86_64|sha256:d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4|11689472",
+    ]
+
+    def generate_url(self, plat: Platform) -> str:
+        """Generate download URL for ruff."""
+        version = self.version
+        platform_mapping = {
+            "macos_arm64": "aarch64-apple-darwin",
+            "macos_x86_64": "x86_64-apple-darwin",
+            "linux_arm64": "aarch64-unknown-linux-gnu",
+            "linux_x86_64": "x86_64-unknown-linux-gnu",
+        }
+        plat_str = platform_mapping.get(plat.value, "x86_64-unknown-linux-gnu")
+        return f"https://github.com/astral-sh/ruff/releases/download/{version}/ruff-{plat_str}.tar.gz"
+
+    def generate_exe(self, plat: Platform) -> str:
+        """Return the path to the ruff executable within the downloaded archive."""
+        return "ruff"
 
     # Linting configuration
     select = StrListOption(

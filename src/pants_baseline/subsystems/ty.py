@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from pants.core.util_rules.external_tool import ExternalTool
+from pants.engine.platform import Platform
 from pants.option.option_types import BoolOption, StrListOption, StrOption
-from pants.option.subsystem import Subsystem
 
 
-class TySubsystem(Subsystem):
+class TySubsystem(ExternalTool):
     """Configuration for ty type checker.
 
     ty is Astral's next-generation Python type checker, designed for
@@ -23,10 +24,30 @@ class TySubsystem(Subsystem):
     options_scope = "baseline-ty"
     help = "ty type checker configuration for baseline plugin (Astral's next-gen type checker)."
 
-    version = StrOption(
-        default="0.1.0",
-        help="Version of ty to use.",
-    )
+    default_version = "0.0.1-alpha.10"
+    default_known_versions = [
+        # ty is still in alpha - these are placeholder hashes
+        "0.0.1-alpha.10|macos_arm64|sha256:0000000000000000000000000000000000000000000000000000000000000000|5000000",
+        "0.0.1-alpha.10|macos_x86_64|sha256:0000000000000000000000000000000000000000000000000000000000000000|5000000",
+        "0.0.1-alpha.10|linux_arm64|sha256:0000000000000000000000000000000000000000000000000000000000000000|5000000",
+        "0.0.1-alpha.10|linux_x86_64|sha256:0000000000000000000000000000000000000000000000000000000000000000|5000000",
+    ]
+
+    def generate_url(self, plat: Platform) -> str:
+        """Generate download URL for ty."""
+        version = self.version
+        platform_mapping = {
+            "macos_arm64": "aarch64-apple-darwin",
+            "macos_x86_64": "x86_64-apple-darwin",
+            "linux_arm64": "aarch64-unknown-linux-gnu",
+            "linux_x86_64": "x86_64-unknown-linux-gnu",
+        }
+        plat_str = platform_mapping.get(plat.value, "x86_64-unknown-linux-gnu")
+        return f"https://github.com/astral-sh/ty/releases/download/{version}/ty-{plat_str}.tar.gz"
+
+    def generate_exe(self, plat: Platform) -> str:
+        """Return the path to the ty executable within the downloaded archive."""
+        return "ty"
 
     # Type checking mode
     strict = BoolOption(

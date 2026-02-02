@@ -6,25 +6,26 @@ from pants.engine.target import (
     COMMON_TARGET_FIELDS,
     BoolField,
     IntField,
+    MultipleSourcesField,
     StringField,
-    StringSequenceField,
     Target,
 )
 
 
-class BaselineSourcesField(StringSequenceField):
+class BaselineSourcesField(MultipleSourcesField):
     """Source files for the baseline Python project."""
 
-    alias = "sources"
-    default = ("**/*.py",)
+    default = ("src/**/*.py",)
+    expected_file_extensions = (".py", ".pyi")
     help = "Python source files to include in baseline checks."
 
 
-class BaselineTestSourcesField(StringSequenceField):
+class BaselineTestSourcesField(MultipleSourcesField):
     """Test source files for the baseline Python project."""
 
     alias = "test_sources"
     default = ("tests/**/*.py",)
+    expected_file_extensions = (".py", ".pyi")
     help = "Test files to include in baseline checks."
 
 

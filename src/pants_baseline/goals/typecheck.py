@@ -4,13 +4,16 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from pants.core.goals.check import CheckResults
 from pants.engine.console import Console
 from pants.engine.goal import Goal, GoalSubsystem
-from pants.engine.rules import collect_rules, goal_rule
-from pants.engine.target import Targets
+from pants.engine.rules import Get, collect_rules, goal_rule
+from pants.engine.target import FilteredTargets
 
+from pants_baseline.rules.typecheck_rules import TyCheckRequest, TyFieldSet
 from pants_baseline.subsystems.baseline import BaselineSubsystem
 from pants_baseline.subsystems.ty import TySubsystem
+from pants_baseline.targets import BaselineSourcesField
 
 
 class BaselineTypecheckSubsystem(GoalSubsystem):
@@ -30,7 +33,7 @@ class BaselineTypecheck(Goal):
 @goal_rule
 async def run_baseline_typecheck(
     console: Console,
-    targets: Targets,
+    targets: FilteredTargets,
     baseline_subsystem: BaselineSubsystem,
     ty_subsystem: TySubsystem,
 ) -> BaselineTypecheck:
@@ -39,16 +42,42 @@ async def run_baseline_typecheck(
         console.print_stdout("Python baseline is disabled.")
         return BaselineTypecheck(exit_code=0)
 
-    console.print_stdout("Running ty type checker...")
-    console.print_stdout(f"  Target Python version: {baseline_subsystem.python_version}")
-    console.print_stdout(f"  Strict mode: {ty_subsystem.strict}")
-    console.print_stdout(f"  Output format: {ty_subsystem.output_format}")
-    console.print_stdout("")
+    # Filter targets that have BaselineSourcesField
+    applicable_targets = [
+        t for t in targets
+        if t.has_field(BaselineSourcesField)
+    ]
 
-    # The actual type checking is handled by the CheckRequest mechanism
-    # This goal just provides a user-friendly entry point
+    if not applicable_targets:
+        console.print_stdout("No baseline_python_project targets found.")
+        return BaselineTypecheck(exit_code=0)
 
-    return BaselineTypecheck(exit_code=0)
+    # Create field sets for each target
+    field_sets = [
+        TyFieldSet.create(t)
+        for t in applicable_targets
+    ]
+
+    # Create the check request and run it
+    request = TyCheckRequest(field_sets)
+    results = await Get(CheckResults, TyCheckRequest, request)
+
+    # Print results
+    exit_code = 0
+    for result in results.results:
+        if result.stdout:
+            console.print_stdout(result.stdout)
+        if result.stderr:
+            console.print_stderr(result.stderr)
+        if result.exit_code != 0:
+            exit_code = result.exit_code
+
+    if exit_code == 0:
+        console.print_stdout(f"✓ Type checked {len(field_sets)} target(s) successfully")
+    else:
+        console.print_stderr(f"✗ Type checking failed with exit code {exit_code}")
+
+    return BaselineTypecheck(exit_code=exit_code)
 
 
 def rules() -> Iterable:

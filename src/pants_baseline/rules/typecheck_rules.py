@@ -4,9 +4,12 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from pants.core.goals.check import CheckRequest, CheckResult, CheckResults
+from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
+from pants.engine.fs import Digest, MergeDigests
+from pants.engine.platform import Platform
 from pants.engine.process import FallibleProcessResult, Process
-from pants.engine.rules import Get, collect_rules, rule
+from pants.engine.rules import Get, MultiGet, collect_rules, rule
 from pants.engine.target import FieldSet
 from pants.engine.unions import UnionRule
 from pants.util.logging import LogLevel
@@ -33,21 +36,12 @@ class TyCheckRequest(CheckRequest):
     tool_name = "ty"
 
 
-@dataclass(frozen=True)
-class TyCheckResult:
-    """Result of running ty type check."""
-
-    exit_code: int
-    stdout: str
-    stderr: str
-    partition_description: str | None = None
-
-
 @rule(desc="Type check with ty", level=LogLevel.DEBUG)
 async def run_ty_check(
     request: TyCheckRequest,
     ty_subsystem: TySubsystem,
     baseline_subsystem: BaselineSubsystem,
+    platform: Platform,
 ) -> CheckResults:
     """Run ty type checker on Python files."""
     if not baseline_subsystem.enabled:
@@ -79,12 +73,17 @@ async def run_ty_check(
             checker_name="ty",
         )
 
-    # Get source files
-    source_files_request: SourceFilesRequest = SourceFilesRequest(
-        sources_fields=[fs.sources for fs in field_sets],
-        for_sources_types=(BaselineSourcesField,),
+    # Download ty and get source files in parallel
+    downloaded_ty, sources = await MultiGet(
+        Get(DownloadedExternalTool, ExternalToolRequest, ty_subsystem.get_request(platform)),
+        Get(
+            SourceFiles,
+            SourceFilesRequest(
+                sources_fields=[fs.sources for fs in field_sets],
+                for_sources_types=(BaselineSourcesField,),
+            ),
+        ),
     )
-    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
 
     if not sources.files:
         return CheckResults(
@@ -99,12 +98,18 @@ async def run_ty_check(
             checker_name="ty",
         )
 
+    # Merge the ty binary with the source files
+    input_digest = await Get(
+        Digest,
+        MergeDigests([downloaded_ty.digest, sources.snapshot.digest]),
+    )
+
     # Build ty command
     strict_arg = ["--strict"] if ty_subsystem.strict else []
     output_format_arg = [f"--output-format={ty_subsystem.output_format}"]
 
     argv = [
-        "ty",
+        downloaded_ty.exe,
         "check",
         f"--python-version={baseline_subsystem.python_version}",
         *strict_arg,
@@ -112,9 +117,9 @@ async def run_ty_check(
         *sources.files,
     ]
 
-    process: Process = Process(
+    process = Process(
         argv=argv,
-        input_digest=sources.snapshot.digest,
+        input_digest=input_digest,
         description=f"Run ty type check on {len(sources.files)} files",
         level=LogLevel.DEBUG,
     )
