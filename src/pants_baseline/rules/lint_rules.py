@@ -3,15 +3,15 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pants.core.goals.lint import LintResult, LintTargetsRequest
+from pants.core.goals.lint import LintResult, LintTargetsRequest, PartitionerType
 from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
+from pants.core.util_rules.partitions import Partitions
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
 from pants.engine.fs import Digest, MergeDigests
 from pants.engine.platform import Platform
 from pants.engine.process import FallibleProcessResult, Process
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
-from pants.engine.target import FieldSet
-from pants.engine.unions import UnionRule
+from pants.engine.target import FieldSet, Target
 from pants.util.logging import LogLevel
 
 from pants_baseline.subsystems.baseline import BaselineSubsystem
@@ -28,17 +28,23 @@ class RuffLintFieldSet(FieldSet):
     sources: BaselineSourcesField
     skip_lint: SkipLintField
 
+    @classmethod
+    def opt_out(cls, tgt: Target) -> bool:
+        """Allow targets to opt out of linting."""
+        return tgt.get(SkipLintField).value
+
 
 class RuffLintRequest(LintTargetsRequest):
     """Request to run Ruff linting."""
 
     field_set_type = RuffLintFieldSet
-    tool_name = "ruff"
+    tool_subsystem = RuffSubsystem
+    partitioner_type = PartitionerType.DEFAULT_SINGLE_PARTITION
 
 
 @rule(desc="Lint with Ruff", level=LogLevel.DEBUG)
 async def run_ruff_lint(
-    request: RuffLintRequest,
+    request: RuffLintRequest.Batch,
     ruff_subsystem: RuffSubsystem,
     baseline_subsystem: BaselineSubsystem,
     platform: Platform,
@@ -53,8 +59,7 @@ async def run_ruff_lint(
             partition_description=None,
         )
 
-    # Filter out skipped targets
-    field_sets = [fs for fs in request.field_sets if not fs.skip_lint.value]
+    field_sets = request.elements
 
     if not field_sets:
         return LintResult(
@@ -121,7 +126,7 @@ async def run_ruff_lint(
         stdout=result.stdout.decode(),
         stderr=result.stderr.decode(),
         linter_name="ruff",
-        partition_description=None,
+        partition_description=request.partition_metadata,
     )
 
 
@@ -129,5 +134,5 @@ def rules() -> Iterable:
     """Return all lint rules."""
     return [
         *collect_rules(),
-        UnionRule(LintTargetsRequest, RuffLintRequest),
+        *RuffLintRequest.rules(),
     ]

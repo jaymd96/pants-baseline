@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pants.core.util_rules.external_tool import ExternalTool
 from pants.engine.platform import Platform
-from pants.option.option_types import BoolOption, StrListOption, StrOption
+from pants.option.option_types import BoolOption, SkipOption, StrListOption, StrOption
 
 
 class RuffSubsystem(ExternalTool):
@@ -41,6 +41,9 @@ class RuffSubsystem(ExternalTool):
     def generate_exe(self, plat: Platform) -> str:
         """Return the path to the ruff executable within the downloaded archive."""
         return "ruff"
+
+    # Skip option required by Pants for tool subsystems
+    skip = SkipOption("lint", "fmt")
 
     # Linting configuration
     select = StrListOption(

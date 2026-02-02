@@ -10,7 +10,7 @@ from pants.engine.fs import Digest, MergeDigests
 from pants.engine.platform import Platform
 from pants.engine.process import FallibleProcessResult, Process
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
-from pants.engine.target import FieldSet
+from pants.engine.target import FieldSet, Target
 from pants.engine.unions import UnionRule
 from pants.util.logging import LogLevel
 
@@ -27,6 +27,11 @@ class TyFieldSet(FieldSet):
 
     sources: BaselineSourcesField
     skip_typecheck: SkipTypecheckField
+
+    @classmethod
+    def opt_out(cls, tgt: Target) -> bool:
+        """Allow targets to opt out of type checking."""
+        return tgt.get(SkipTypecheckField).value
 
 
 class TyCheckRequest(CheckRequest):

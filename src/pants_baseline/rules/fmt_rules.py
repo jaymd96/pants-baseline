@@ -3,15 +3,14 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pants.core.goals.fmt import FmtResult, FmtTargetsRequest
+from pants.core.goals.fmt import FmtResult, FmtTargetsRequest, PartitionerType
 from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
 from pants.engine.fs import Digest, MergeDigests, Snapshot
 from pants.engine.platform import Platform
 from pants.engine.process import FallibleProcessResult, Process
 from pants.engine.rules import Get, MultiGet, collect_rules, rule
-from pants.engine.target import FieldSet
-from pants.engine.unions import UnionRule
+from pants.engine.target import FieldSet, Target
 from pants.util.logging import LogLevel
 
 from pants_baseline.subsystems.baseline import BaselineSubsystem
@@ -28,38 +27,44 @@ class RuffFmtFieldSet(FieldSet):
     sources: BaselineSourcesField
     skip_fmt: SkipFormatField
 
+    @classmethod
+    def opt_out(cls, tgt: Target) -> bool:
+        """Allow targets to opt out of formatting."""
+        return tgt.get(SkipFormatField).value
+
 
 class RuffFmtRequest(FmtTargetsRequest):
     """Request to run Ruff formatting."""
 
     field_set_type = RuffFmtFieldSet
-    tool_name = "ruff"
+    tool_subsystem = RuffSubsystem
+    partitioner_type = PartitionerType.DEFAULT_SINGLE_PARTITION
 
 
 @rule(desc="Format with Ruff", level=LogLevel.DEBUG)
 async def run_ruff_fmt(
-    request: RuffFmtRequest,
+    request: RuffFmtRequest.Batch,
     ruff_subsystem: RuffSubsystem,
     baseline_subsystem: BaselineSubsystem,
     platform: Platform,
 ) -> FmtResult:
     """Run Ruff formatter on Python files."""
+    field_sets = request.elements
+    snapshot = request.snapshot
+
     if not baseline_subsystem.enabled:
         return FmtResult(
-            input=request.snapshot,
-            output=request.snapshot,
+            input=snapshot,
+            output=snapshot,
             stdout="",
             stderr="",
             formatter_name="ruff",
         )
 
-    # Filter out skipped targets
-    field_sets = [fs for fs in request.field_sets if not fs.skip_fmt.value]
-
     if not field_sets:
         return FmtResult(
-            input=request.snapshot,
-            output=request.snapshot,
+            input=snapshot,
+            output=snapshot,
             stdout="No targets to format",
             stderr="",
             formatter_name="ruff",
@@ -79,8 +84,8 @@ async def run_ruff_fmt(
 
     if not sources.files:
         return FmtResult(
-            input=request.snapshot,
-            output=request.snapshot,
+            input=snapshot,
+            output=snapshot,
             stdout="No files to format",
             stderr="",
             formatter_name="ruff",
@@ -129,5 +134,5 @@ def rules() -> Iterable:
     """Return all format rules."""
     return [
         *collect_rules(),
-        UnionRule(FmtTargetsRequest, RuffFmtRequest),
+        *RuffFmtRequest.rules(),
     ]
