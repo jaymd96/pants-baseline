@@ -5,8 +5,10 @@ from typing import Iterable
 
 from pants.core.goals.test import TestRequest, TestResult
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
-from pants.engine.process import FallibleProcessResult, Process
-from pants.engine.rules import Get, collect_rules, rule
+from pants.engine.internals.selectors import concurrently
+from pants.engine.intrinsics import execute_process
+from pants.engine.process import Process
+from pants.engine.rules import collect_rules, implicitly, rule
 from pants.engine.target import FieldSet
 from pants.engine.unions import UnionRule
 from pants.util.logging import LogLevel
@@ -70,19 +72,20 @@ async def run_pytest(
             output_setting=None,
         )
 
-    # Get test source files
-    test_source_files_request: SourceFilesRequest = SourceFilesRequest(
+    # Get test and source files in parallel using new intrinsics
+    test_source_files_request = SourceFilesRequest(
         sources_fields=[fs.test_sources for fs in field_sets],
         for_sources_types=(BaselineTestSourcesField,),
     )
-    test_sources = await Get(SourceFiles, SourceFilesRequest, test_source_files_request)
-
-    # Get source files for coverage
-    source_files_request: SourceFilesRequest = SourceFilesRequest(
+    source_files_request = SourceFilesRequest(
         sources_fields=[fs.sources for fs in field_sets],
         for_sources_types=(BaselineSourcesField,),
     )
-    sources = await Get(SourceFiles, SourceFilesRequest, source_files_request)
+
+    test_sources, sources = await concurrently(
+        implicitly(test_source_files_request, SourceFiles),
+        implicitly(source_files_request, SourceFiles),
+    )
 
     if not test_sources.files:
         return TestResult(
@@ -119,14 +122,14 @@ async def run_pytest(
         *test_sources.files,
     ]
 
-    process: Process = Process(
+    process = Process(
         argv=argv,
         input_digest=test_sources.snapshot.digest,
         description=f"Run pytest on {len(test_sources.files)} test files",
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await execute_process(process)
 
     return TestResult(
         exit_code=result.exit_code,

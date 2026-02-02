@@ -1,6 +1,6 @@
 {
   "name": "pants-baseline",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Claude Code skills for pants-baseline Python quality checks",
   "author": {
     "name": "jaymd96"

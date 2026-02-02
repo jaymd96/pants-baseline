@@ -3,11 +3,13 @@
 from dataclasses import dataclass
 from typing import Iterable
 
-from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
-from pants.engine.fs import Digest, MergeDigests, PathGlobs, Snapshot
+from pants.core.util_rules.external_tool import download_external_tool
+from pants.engine.fs import MergeDigests, PathGlobs
+from pants.engine.internals.selectors import concurrently
+from pants.engine.intrinsics import merge_digests, execute_process, path_globs_to_digest, digest_to_snapshot
 from pants.engine.platform import Platform
-from pants.engine.process import FallibleProcessResult, Process
-from pants.engine.rules import Get, collect_rules, rule
+from pants.engine.process import Process
+from pants.engine.rules import collect_rules, rule
 from pants.util.logging import LogLevel
 
 from pants_baseline.subsystems.uv import UvSubsystem
@@ -39,23 +41,20 @@ async def run_uv_audit(
     platform: Platform,
 ) -> AuditResult:
     """Run uv audit on dependencies."""
-    # Download uv
-    downloaded_uv = await Get(
-        DownloadedExternalTool,
-        ExternalToolRequest,
-        uv_subsystem.get_request(platform),
+    # Download uv and get lock files in parallel using new intrinsics
+    downloaded_uv_get = download_external_tool(uv_subsystem.get_request(platform))
+    lock_file_digest_get = path_globs_to_digest(
+        PathGlobs([request.lock_file, "pyproject.toml", "requirements.txt"])
     )
 
-    # Get the lock file if it exists
-    lock_file_snapshot = await Get(
-        Snapshot,
-        PathGlobs([request.lock_file, "pyproject.toml", "requirements.txt"]),
+    downloaded_uv, lock_file_digest = await concurrently(
+        downloaded_uv_get,
+        lock_file_digest_get,
     )
 
     # Merge the uv binary with lock files
-    input_digest = await Get(
-        Digest,
-        MergeDigests([downloaded_uv.digest, lock_file_snapshot.digest]),
+    input_digest = await merge_digests(
+        MergeDigests([downloaded_uv.digest, lock_file_digest]),
     )
 
     # Build ignore args
@@ -78,7 +77,7 @@ async def run_uv_audit(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await execute_process(process)
 
     stdout = result.stdout.decode()
     stderr = result.stderr.decode()

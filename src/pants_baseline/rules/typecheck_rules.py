@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from pants.core.goals.check import CheckRequest, CheckResult, CheckResults
-from pants.core.util_rules.external_tool import DownloadedExternalTool, ExternalToolRequest
+from pants.core.util_rules.external_tool import download_external_tool
 from pants.core.util_rules.source_files import SourceFiles, SourceFilesRequest
-from pants.engine.fs import Digest, MergeDigests
+from pants.engine.fs import MergeDigests
+from pants.engine.internals.selectors import concurrently
+from pants.engine.intrinsics import merge_digests, execute_process
 from pants.engine.platform import Platform
-from pants.engine.process import FallibleProcessResult, Process
-from pants.engine.rules import Get, MultiGet, collect_rules, rule
+from pants.engine.process import Process
+from pants.engine.rules import collect_rules, implicitly, rule
 from pants.engine.target import FieldSet, Target
 from pants.engine.unions import UnionRule
 from pants.util.logging import LogLevel
@@ -78,16 +80,16 @@ async def run_ty_check(
             checker_name="ty",
         )
 
-    # Download ty and get source files in parallel
-    downloaded_ty, sources = await MultiGet(
-        Get(DownloadedExternalTool, ExternalToolRequest, ty_subsystem.get_request(platform)),
-        Get(
-            SourceFiles,
-            SourceFilesRequest(
-                sources_fields=[fs.sources for fs in field_sets],
-                for_sources_types=(BaselineSourcesField,),
-            ),
-        ),
+    # Download ty and get source files in parallel using new intrinsics
+    downloaded_ty_get = download_external_tool(ty_subsystem.get_request(platform))
+    sources_get = SourceFilesRequest(
+        sources_fields=[fs.sources for fs in field_sets],
+        for_sources_types=(BaselineSourcesField,),
+    )
+
+    downloaded_ty, sources = await concurrently(
+        downloaded_ty_get,
+        implicitly(sources_get, SourceFiles),
     )
 
     if not sources.files:
@@ -104,8 +106,7 @@ async def run_ty_check(
         )
 
     # Merge the ty binary with the source files
-    input_digest = await Get(
-        Digest,
+    input_digest = await merge_digests(
         MergeDigests([downloaded_ty.digest, sources.snapshot.digest]),
     )
 
@@ -129,7 +130,7 @@ async def run_ty_check(
         level=LogLevel.DEBUG,
     )
 
-    result = await Get(FallibleProcessResult, Process, process)
+    result = await execute_process(process)
 
     return CheckResults(
         results=[

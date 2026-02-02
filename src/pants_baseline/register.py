@@ -14,10 +14,6 @@ from pants_baseline.goals import lint as lint_goal
 from pants_baseline.goals import test as test_goal
 from pants_baseline.goals import typecheck as typecheck_goal
 from pants_baseline.rules import audit_rules, fmt_rules, lint_rules, test_rules, typecheck_rules
-from pants_baseline.subsystems.baseline import BaselineSubsystem
-from pants_baseline.subsystems.ruff import RuffSubsystem
-from pants_baseline.subsystems.ty import TySubsystem
-from pants_baseline.subsystems.uv import UvSubsystem
 from pants_baseline.targets import BaselinePythonProject
 
 
@@ -29,6 +25,7 @@ def rules() -> Iterable[Rule]:
     rather than using collect_rules() which only collects @rule functions.
     """
     return [
+        # Our rules
         *lint_rules.rules(),
         *fmt_rules.rules(),
         *typecheck_rules.rules(),
