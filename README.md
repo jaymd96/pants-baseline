@@ -25,7 +25,7 @@ backend_packages = [
 ]
 
 plugins = [
-    "jaymd96-pants-baseline==0.1.0",
+    "jaymd96-pants-baseline==0.2.0",
 ]
 ```
 
@@ -279,7 +279,7 @@ backend_packages = [
     "pants.backend.python",
     "pants_baseline",
 ]
-plugins = ["jaymd96-pants-baseline==0.1.0"]
+plugins = ["jaymd96-pants-baseline==0.2.0"]
 
 [python]
 interpreter_constraints = ["CPython>=3.13,<4"]
@@ -316,6 +316,37 @@ strict = true
 | Flake8 + plugins | Ruff lint |
 | MyPy/Pyright | ty |
 | pip-audit | uv audit |
+
+## Claude Code Integration
+
+This plugin bundles recommended [Claude Code](https://claude.ai/code) plugins for enhanced AI-assisted development workflows.
+
+### Install Bundled Claude Plugins
+
+When combined with [jaymd96-pants-claude-plugins](https://github.com/jaymd96/pants-claude-plugins):
+
+```toml
+# pants.toml
+[GLOBAL]
+plugins = [
+    "jaymd96-pants-baseline==0.2.0",
+    "jaymd96-pants-claude-plugins>=0.2.0",
+]
+backend_packages = [
+    "pants_baseline",
+    "pants_claude_plugins",
+]
+```
+
+Then run:
+
+```bash
+pants claude-install --include-bundled ::
+```
+
+This automatically installs:
+- **github** - GitHub integration for PR workflows and issue management
+- **commit-commands** - Git workflow commands for commits, pushes, and PRs
 
 ## Development
 

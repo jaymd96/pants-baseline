@@ -45,6 +45,9 @@ dev = [
     "pytest-cov>=4.1.0",
     "ruff>=0.2.0",
 ]
+claude = [
+    "jaymd96-pants-claude-plugins>=0.2.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/jaymd96/pants-baseline"
