@@ -6,7 +6,7 @@ It registers all rules, targets, and subsystems provided by this plugin.
 
 from typing import Iterable
 
-from pants.engine.rules import Rule, collect_rules
+from pants.engine.rules import Rule
 
 from pants_baseline.goals import audit as audit_goal
 from pants_baseline.goals import fmt as fmt_goal
@@ -22,18 +22,23 @@ from pants_baseline.targets import BaselinePythonProject
 
 
 def rules() -> Iterable[Rule]:
-    """Return all rules provided by this plugin."""
+    """Return all rules provided by this plugin.
+
+    Each module's rules() function returns both @rule decorated functions
+    AND UnionRule registrations. We must call the rules() functions directly
+    rather than using collect_rules() which only collects @rule functions.
+    """
     return [
-        *collect_rules(lint_rules),
-        *collect_rules(fmt_rules),
-        *collect_rules(typecheck_rules),
-        *collect_rules(test_rules),
-        *collect_rules(audit_rules),
-        *collect_rules(lint_goal),
-        *collect_rules(fmt_goal),
-        *collect_rules(typecheck_goal),
-        *collect_rules(test_goal),
-        *collect_rules(audit_goal),
+        *lint_rules.rules(),
+        *fmt_rules.rules(),
+        *typecheck_rules.rules(),
+        *test_rules.rules(),
+        *audit_rules.rules(),
+        *lint_goal.rules(),
+        *fmt_goal.rules(),
+        *typecheck_goal.rules(),
+        *test_goal.rules(),
+        *audit_goal.rules(),
     ]
 
 
