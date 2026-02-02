@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from pants.core.goals.generate_lockfiles import ExportableTool
 from pants.core.util_rules.external_tool import ExternalTool
 from pants.engine.platform import Platform
+from pants.engine.rules import collect_rules
+from pants.engine.unions import UnionRule
 from pants.option.option_types import BoolOption, StrListOption, StrOption
 
 
@@ -98,4 +101,12 @@ class TySubsystem(ExternalTool):
     output_format = StrOption(
         default="text",
         help="Output format for type errors ('text', 'json', 'github').",
+    )
+
+
+def rules():
+    """Return rules for the ty subsystem."""
+    return (
+        *collect_rules(),
+        UnionRule(ExportableTool, TySubsystem),
     )

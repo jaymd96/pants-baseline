@@ -129,7 +129,7 @@ async def run_pytest(
         level=LogLevel.DEBUG,
     )
 
-    result = await execute_process(process)
+    result = await execute_process(process, **implicitly())
 
     return TestResult(
         exit_code=result.exit_code,

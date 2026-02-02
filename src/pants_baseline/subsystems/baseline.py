@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pants.engine.rules import collect_rules
 from pants.option.option_types import BoolOption, IntOption, StrListOption, StrOption
 from pants.option.subsystem import Subsystem
 
@@ -72,3 +73,8 @@ class BaselineSubsystem(Subsystem):
         """Return Python version in format suitable for tools (e.g., 'py311')."""
         version = self.python_version.replace(".", "")
         return f"py{version}"
+
+
+def rules():
+    """Return rules for the baseline subsystem."""
+    return collect_rules()

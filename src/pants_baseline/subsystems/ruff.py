@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from pants.core.util_rules.external_tool import ExternalTool
 from pants.engine.platform import Platform
+from pants.engine.rules import collect_rules
+from pants.engine.unions import UnionRule
 from pants.option.option_types import BoolOption, SkipOption, StrListOption, StrOption
+from pants.core.goals.generate_lockfiles import ExportableTool
 
 
 class RuffSubsystem(ExternalTool):
@@ -19,11 +22,11 @@ class RuffSubsystem(ExternalTool):
 
     default_version = "0.9.6"
     default_known_versions = [
-        # Ruff 0.9.6 - January 2025
-        "0.9.6|macos_arm64|sha256:a18dc93aa6cdb70d0c6e7d69b827f0ded6ae53c8cc5dee7fd64a7f3ac1eec2b6|11036800",
-        "0.9.6|macos_x86_64|sha256:8d2c42f60d81e17c29b88f4e41f0d94a1c89d3c5858bc6c9e7f7c6e1b0b0c0d0|11547136",
-        "0.9.6|linux_arm64|sha256:c5c72a6d0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c|10941952",
-        "0.9.6|linux_x86_64|sha256:d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4|11689472",
+        # Ruff 0.9.6 - Format: version|platform|sha256_hash|file_size_bytes
+        "0.9.6|macos_arm64|a3132eb5e3d95f36d378144082276fbed0309789dadb19d8a4c41ec5e80451fb|11124436",
+        "0.9.6|macos_x86_64|ec88c095036b25e95391ea202fcc9496d565f4e43152db10785eb9757ea0815d|11663591",
+        "0.9.6|linux_arm64|cf796c953def5a7102002372893942fac875ac718355698a4a70405104dfbb6c|11946730",
+        "0.9.6|linux_x86_64|bed850f15d4d5aaaef2b6a131bfecd5b9d7d3191596249d07e576bd9fd37078e|12511815",
     ]
 
     def generate_url(self, plat: Platform) -> str:
@@ -40,7 +43,14 @@ class RuffSubsystem(ExternalTool):
 
     def generate_exe(self, plat: Platform) -> str:
         """Return the path to the ruff executable within the downloaded archive."""
-        return "ruff"
+        platform_mapping = {
+            "macos_arm64": "aarch64-apple-darwin",
+            "macos_x86_64": "x86_64-apple-darwin",
+            "linux_arm64": "aarch64-unknown-linux-gnu",
+            "linux_x86_64": "x86_64-unknown-linux-gnu",
+        }
+        plat_str = platform_mapping.get(plat.value, "x86_64-unknown-linux-gnu")
+        return f"ruff-{plat_str}/ruff"
 
     # Skip option required by Pants for tool subsystems
     skip = SkipOption("lint", "fmt")
@@ -111,4 +121,12 @@ class RuffSubsystem(ExternalTool):
             "F403",   # star imports OK for namespace
         ],
         help="Rules to skip in __init__.py files.",
+    )
+
+
+def rules():
+    """Return rules for the Ruff subsystem."""
+    return (
+        *collect_rules(),
+        UnionRule(ExportableTool, RuffSubsystem),
     )

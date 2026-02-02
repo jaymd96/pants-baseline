@@ -6,10 +6,10 @@ from typing import Iterable
 from pants.core.util_rules.external_tool import download_external_tool
 from pants.engine.fs import MergeDigests, PathGlobs
 from pants.engine.internals.selectors import concurrently
-from pants.engine.intrinsics import merge_digests, execute_process, path_globs_to_digest, digest_to_snapshot
+from pants.engine.intrinsics import merge_digests, execute_process, path_globs_to_digest
 from pants.engine.platform import Platform
 from pants.engine.process import Process
-from pants.engine.rules import collect_rules, rule
+from pants.engine.rules import collect_rules, implicitly, rule
 from pants.util.logging import LogLevel
 
 from pants_baseline.subsystems.uv import UvSubsystem
@@ -77,7 +77,7 @@ async def run_uv_audit(
         level=LogLevel.DEBUG,
     )
 
-    result = await execute_process(process)
+    result = await execute_process(process, **implicitly())
 
     stdout = result.stdout.decode()
     stderr = result.stderr.decode()

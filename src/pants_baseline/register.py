@@ -2,18 +2,19 @@
 
 This module is the entry point for the Pants plugin system.
 It registers all rules, targets, and subsystems provided by this plugin.
+
+This plugin integrates with Pants' built-in lint, fmt, and check goals
+rather than providing custom goals.
 """
 
-from typing import Iterable
+from typing import Iterable, Type
 
 from pants.engine.rules import Rule
+from pants.option.subsystem import Subsystem
 
-from pants_baseline.goals import audit as audit_goal
-from pants_baseline.goals import fmt as fmt_goal
-from pants_baseline.goals import lint as lint_goal
-from pants_baseline.goals import test as test_goal
-from pants_baseline.goals import typecheck as typecheck_goal
-from pants_baseline.rules import audit_rules, fmt_rules, lint_rules, test_rules, typecheck_rules
+from pants_baseline.rules import fmt_rules, lint_rules
+from pants_baseline.subsystems.baseline import BaselineSubsystem
+from pants_baseline.subsystems.ruff import RuffSubsystem
 from pants_baseline.targets import BaselinePythonProject
 
 
@@ -25,20 +26,20 @@ def rules() -> Iterable[Rule]:
     rather than using collect_rules() which only collects @rule functions.
     """
     return [
-        # Our rules
+        # Tool rules (integrate with Pants built-in lint/fmt goals)
         *lint_rules.rules(),
         *fmt_rules.rules(),
-        *typecheck_rules.rules(),
-        *test_rules.rules(),
-        *audit_rules.rules(),
-        *lint_goal.rules(),
-        *fmt_goal.rules(),
-        *typecheck_goal.rules(),
-        *test_goal.rules(),
-        *audit_goal.rules(),
     ]
 
 
 def target_types() -> Iterable[type]:
     """Return all custom target types provided by this plugin."""
     return [BaselinePythonProject]
+
+
+def subsystems() -> Iterable[Type[Subsystem]]:
+    """Return all subsystems provided by this plugin."""
+    return [
+        BaselineSubsystem,
+        RuffSubsystem,
+    ]

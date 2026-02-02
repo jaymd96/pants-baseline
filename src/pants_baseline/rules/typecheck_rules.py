@@ -130,7 +130,7 @@ async def run_ty_check(
         level=LogLevel.DEBUG,
     )
 
-    result = await execute_process(process)
+    result = await execute_process(process, **implicitly())
 
     return CheckResults(
         results=[
